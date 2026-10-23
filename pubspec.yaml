@@ -13,6 +13,8 @@ dependencies:
   file_picker: ^10.3.10       # elegir el Excel y guardar el Excel actualizado
   excel: ^4.0.6               # leer y escribir archivos .xlsx
   shared_preferences: ^2.3.2  # guardar el avance en el celular
+  share_plus: ^11.0.0         # compartir el Excel por WhatsApp
+  path_provider: ^2.1.5       # carpeta temporal para crear el Excel
 
 flutter:
   uses-material-design: true

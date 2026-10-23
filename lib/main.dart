@@ -8,13 +8,15 @@
 // ============================================================
 
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:excel/excel.dart' as xl;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const App());
@@ -441,29 +443,37 @@ class _InicioState extends State<Inicio> {
     }
   }
 
-  // ---------- Descargar el Excel actualizado ----------
-  Future<void> descargarExcel() async {
+  // ---------- Compartir el Excel actualizado ----------
+  // Crea el Excel en una carpeta temporal del celular y abre el menú
+  // "Compartir" de Android para enviarlo por WhatsApp, correo, Drive...
+  Future<void> compartirExcel() async {
     final l = lista!;
-    final libro = xl.Excel.createExcel();
-    final nombreHoja = libro.getDefaultSheet() ?? 'Sheet1';
-    libro.rename(nombreHoja, 'Invitados');
-    final hoja = libro['Invitados'];
-    hoja.appendRow(l.encabezados.map((h) => xl.TextCellValue(h)).toList());
-    for (final f in l.filas) {
-      hoja.appendRow(f.map((v) => xl.TextCellValue(v)).toList());
+    try {
+      final libro = xl.Excel.createExcel();
+      final hoja = libro[libro.getDefaultSheet() ?? 'Sheet1'];
+      hoja.appendRow(l.encabezados.map((h) => xl.TextCellValue(h)).toList());
+      for (final f in l.filas) {
+        hoja.appendRow(f.map((v) => xl.TextCellValue(v)).toList());
+      }
+      final bytes = libro.encode();
+      if (bytes == null) throw Exception('No se pudo crear el Excel.');
+
+      final hoy = DateTime.now().toIso8601String().substring(0, 10);
+      final carpeta = await getTemporaryDirectory();
+      final archivo = File('${carpeta.path}/ingreso_evento_$hoy.xlsx');
+      await archivo.writeAsBytes(bytes, flush: true);
+
+      await SharePlus.instance.share(ShareParams(
+        files: [
+          XFile(archivo.path,
+              mimeType:
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        ],
+        text: 'Registro de ingreso al evento ($hoy)',
+      ));
+    } catch (e) {
+      aviso('Error al crear el Excel: $e');
     }
-    final bytes = libro.encode();
-    if (bytes == null) {
-      aviso('No se pudo crear el Excel.');
-      return;
-    }
-    final hoy = DateTime.now().toIso8601String().substring(0, 10);
-    final ruta = await FilePicker.platform.saveFile(
-      dialogTitle: 'Guardar Excel actualizado',
-      fileName: 'ingreso_evento_$hoy.xlsx',
-      bytes: Uint8List.fromList(bytes),
-    );
-    if (ruta != null) aviso('Excel guardado.');
   }
 
   Future<void> cambiarLista() async {
@@ -546,10 +556,10 @@ class _InicioState extends State<Inicio> {
           ),
           PopupMenuButton<String>(
             onSelected: (v) =>
-                v == 'excel' ? descargarExcel() : cambiarLista(),
+                v == 'excel' ? compartirExcel() : cambiarLista(),
             itemBuilder: (_) => const [
               PopupMenuItem(
-                  value: 'excel', child: Text('Descargar Excel actualizado')),
+                  value: 'excel', child: Text('Compartir Excel con resultados')),
               PopupMenuItem(value: 'cambiar', child: Text('Cambiar lista')),
             ],
           ),
