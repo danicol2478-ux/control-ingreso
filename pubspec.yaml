@@ -1,0 +1,18 @@
+name: control_ingreso
+description: Control de ingreso a eventos leyendo la cédula colombiana.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  mobile_scanner: ^7.2.1      # cámara + lector de códigos (QR y PDF417 de la cédula)
+  file_picker: ^10.3.10       # elegir el Excel y guardar el Excel actualizado
+  excel: ^4.0.6               # leer y escribir archivos .xlsx
+  shared_preferences: ^2.3.2  # guardar el avance en el celular
+
+flutter:
+  uses-material-design: true
